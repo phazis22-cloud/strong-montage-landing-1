@@ -1,14 +1,78 @@
+# robots.txt для strongmontage.ru
+# Стратегия: открытый доступ всем ботам (классическим поисковым + AI-краулерам).
+# AI-ботов пускаем, чтобы сайт попадал в нейроответы ChatGPT/Claude/Perplexity (GEO),
+# а не только в классическую выдачу.
+
+# Классические поисковые краулеры
+User-agent: Yandex
+Allow: /
+Crawl-delay: 1
+
 User-agent: Googlebot
 Allow: /
 
 User-agent: Bingbot
 Allow: /
 
-User-agent: Twitterbot
+# AI-краулеры для цитирования в нейроответах (live-запросы пользователей)
+User-agent: ChatGPT-User
 Allow: /
 
-User-agent: facebookexternalhit
+User-agent: Claude-User
 Allow: /
 
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+# AI-краулеры для обучения моделей (разрешено; чтобы закрыть позже — заменить Allow: / на Disallow: /)
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+User-agent: Meta-ExternalAgent
+Allow: /
+
+# Все остальные
 User-agent: *
 Allow: /
+
+# Закрытые от индексации технические разделы и дубли по UTM/click-id
+Disallow: /api/
+Disallow: /*.json$
+Disallow: /admin/
+Disallow: /*?utm_*
+Disallow: /*?yclid=
+Disallow: /*?gclid=
+Disallow: /*?fbclid=
+
+# Юр-страница /privacy в robots НЕ блокируется — она закрывается через meta robots noindex,
+# иначе бот не сможет зайти и прочитать noindex.
+
+Sitemap: https://strongmontage.ru/sitemap.xml
+Host: strongmontage.ru
