@@ -1,6 +1,7 @@
 import json
 import os
 import smtplib
+from datetime import datetime, timezone, timedelta
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
@@ -24,6 +25,12 @@ def handler(event: dict, context) -> dict:
 
     name = (body.get('name') or '').strip()
     phone = (body.get('phone') or '').strip()
+    consent = bool(body.get('consent'))
+    honeypot = (body.get('website') or '').strip()
+
+    # honeypot: поле заполняют только боты — тихо игнорируем (отвечаем ОК, чтобы не подсказывать боту)
+    if honeypot:
+        return {'statusCode': 200, 'headers': cors_headers, 'body': json.dumps({'ok': True})}
 
     if not name or not phone:
         return {
@@ -31,6 +38,17 @@ def handler(event: dict, context) -> dict:
             'headers': cors_headers,
             'body': json.dumps({'error': 'Имя и телефон обязательны'})
         }
+
+    # согласие на обработку ПДн обязательно (152-ФЗ) — дублируем клиентскую проверку на сервере
+    if not consent:
+        return {
+            'statusCode': 400,
+            'headers': cors_headers,
+            'body': json.dumps({'error': 'Требуется согласие на обработку персональных данных'})
+        }
+
+    # отметка времени согласия (МСК, UTC+3) — фиксируем в письме для доказуемости
+    consent_ts = datetime.now(timezone(timedelta(hours=3))).strftime('%d.%m.%Y %H:%M:%S МСК')
 
     smtp_host = os.environ.get('SMTP_HOST', 'smtp.yandex.ru')
     smtp_user = os.environ['SMTP_USER']
@@ -52,7 +70,11 @@ def handler(event: dict, context) -> dict:
         </tr>
         <tr>
           <td style="padding: 10px 16px; background: #f5f5f5; font-weight: bold;">Телефон</td>
-          <td style="padding: 10px 16px;"><a href="tel:{phone}" style="color: #FF6B00;">{phone}</a></td>
+          <td style="padding: 10px 16px; border-bottom: 1px solid #eee;"><a href="tel:{phone}" style="color: #FF6B00;">{phone}</a></td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 16px; background: #f5f5f5; font-weight: bold;">Согласие на ПДн</td>
+          <td style="padding: 10px 16px;">получено {consent_ts}</td>
         </tr>
       </table>
     </body></html>

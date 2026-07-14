@@ -43,22 +43,25 @@ function StatCard({ value, suffix, label, started }: { value: number; suffix: st
 function ContactForm() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [consent, setConsent] = useState(false);
+  const [hp, setHp] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !phone.trim()) return;
+    if (!name.trim() || !phone.trim() || !consent) return;
     setStatus('loading');
     try {
       const res = await fetch(func2url['send-email'], {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), phone: phone.trim() }),
+        body: JSON.stringify({ name: name.trim(), phone: phone.trim(), consent: true, website: hp }),
       });
       if (res.ok) {
         setStatus('success');
         setName('');
         setPhone('');
+        setConsent(false);
       } else {
         setStatus('error');
       }
@@ -119,9 +122,33 @@ function ContactForm() {
                 Ошибка отправки. Попробуйте ещё раз или позвоните нам.
               </p>
             )}
+            {/* honeypot — скрыт от людей, ловит ботов; настоящие пользователи его не видят */}
+            <input
+              type="text"
+              name="website"
+              value={hp}
+              onChange={e => setHp(e.target.value)}
+              tabIndex={-1}
+              autoComplete="off"
+              aria-hidden="true"
+              style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }}
+            />
+            <label className="flex items-start gap-2.5 text-left cursor-pointer">
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={e => setConsent(e.target.checked)}
+                required
+                className="mt-0.5 w-4 h-4 shrink-0 accent-[#FF6B00] cursor-pointer"
+              />
+              <span className="text-[#777] text-xs leading-relaxed">
+                Я соглашаюсь на обработку персональных данных в соответствии с{' '}
+                <a href="/privacy" target="_blank" rel="noopener" className="text-[#FF6B00] hover:underline">политикой конфиденциальности</a>
+              </span>
+            </label>
             <button
               type="submit"
-              disabled={status === 'loading'}
+              disabled={status === 'loading' || !consent}
               className="w-full gradient-bg text-white font-heading uppercase tracking-wide text-sm py-4 rounded-xl hover:opacity-90 active:scale-[0.98] transition-all min-h-[54px] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
               {status === 'loading' ? (
                 <>
@@ -130,10 +157,6 @@ function ContactForm() {
                 </>
               ) : 'Оставить заявку'}
             </button>
-            <p className="text-[#444] text-xs text-center">
-              Нажимая кнопку, вы соглашаетесь с{' '}
-              <a href="/privacy" className="hover:text-[#FF6B00] transition-colors">политикой конфиденциальности</a>
-            </p>
           </form>
         )}
       </div>
@@ -197,7 +220,9 @@ export default function Index() {
   const [scrolled, setScrolled] = useState(false);
   const [formState, setFormState] = useState<'idle' | 'sent'>('idle');
   const [formConsent, setFormConsent] = useState(false);
-  const [cookieAccepted, setCookieAccepted] = useState(() => localStorage.getItem('cookie_accepted') === '1');
+  const [cookieChoice, setCookieChoice] = useState<string | null>(() => {
+    try { return localStorage.getItem('cookie_consent'); } catch { return null; }
+  });
   const [statsStarted, setStatsStarted] = useState(false);
   const statsRef = useRef<HTMLDivElement>(null);
 
@@ -225,8 +250,14 @@ export default function Index() {
   }
 
   function acceptCookies() {
-    localStorage.setItem('cookie_accepted', '1');
-    setCookieAccepted(true);
+    try { localStorage.setItem('cookie_consent', 'accepted'); } catch { /* noop */ }
+    setCookieChoice('accepted');
+    (window as any).loadYandexMetrika?.();
+  }
+
+  function declineCookies() {
+    try { localStorage.setItem('cookie_consent', 'declined'); } catch { /* noop */ }
+    setCookieChoice('declined');
   }
 
   const navLinks = [
@@ -1096,7 +1127,7 @@ export default function Index() {
             <div className="text-[#444] text-xs space-y-0.5">
               <p>© 2015–2026 ООО «Стронг-Монтаж»</p>
               <p className="hidden sm:block">ИНН: 7724302834 · ОГРН: 1157746041144 · 115408, г. Москва, ул. Братеевская, д. 18, кор. 3, этаж 1, пом. VI, ком. 1</p>
-              <p className="sm:hidden">ИНН: 7724302834 · г. Москва</p>
+              <p className="sm:hidden">ИНН 7724302834 · ОГРН 1157746041144 · г. Москва</p>
             </div>
             <a href="/privacy" className="text-[#555] text-xs hover:text-[#FF6B00] transition-colors whitespace-nowrap">
               Политика конфиденциальности
@@ -1113,17 +1144,23 @@ export default function Index() {
       </a>
 
       {/* ─── COOKIE-БАННЕР ──────────────────────────────────────────────── */}
-      {!cookieAccepted && (
+      {!cookieChoice && (
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#111111] border-t border-[#2a2a2a] px-4 sm:px-6 py-4">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <p className="text-[#999] text-xs sm:text-sm leading-relaxed">
-              Мы используем файлы cookie для корректной работы сайта.{' '}
+              Мы используем файлы cookie для работы сайта и аналитики (Яндекс.Метрика). Аналитика включается только с вашего согласия.{' '}
               <a href="/privacy" className="text-[#FF6B00] hover:underline">Подробнее</a>.
             </p>
-            <button onClick={acceptCookies}
-              className="w-full sm:w-auto shrink-0 gradient-bg text-white text-sm font-medium px-6 py-2.5 rounded-full hover:opacity-90 transition-all whitespace-nowrap min-h-[44px]">
-              Принять
-            </button>
+            <div className="flex gap-2 w-full sm:w-auto shrink-0">
+              <button onClick={declineCookies}
+                className="flex-1 sm:flex-none border border-[#2a2a2a] text-[#999] text-sm font-medium px-5 py-2.5 rounded-full hover:border-[#FF6B00] hover:text-[#f0f0f0] transition-all whitespace-nowrap min-h-[44px]">
+                Отклонить
+              </button>
+              <button onClick={acceptCookies}
+                className="flex-1 sm:flex-none gradient-bg text-white text-sm font-medium px-6 py-2.5 rounded-full hover:opacity-90 transition-all whitespace-nowrap min-h-[44px]">
+                Принять
+              </button>
+            </div>
           </div>
         </div>
       )}
