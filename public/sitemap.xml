@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  sitemap.xml для strongmontage.ru
+  Сайт — одностраничный лендинг. В карту включаем только индексируемую главную.
+  Страницу /privacy НЕ включаем: она закрыта meta robots noindex.
+  lastmod обновлять при значимом изменении контента главной (формат ISO 8601 с таймзоной Москвы, +03:00).
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://strongmontage.ru/</loc>
+    <lastmod>2026-07-13T12:00:00+03:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>
